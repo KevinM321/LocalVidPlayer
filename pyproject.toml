@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localvidplayer"
+version = "0.1.0"
+
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=5.3.1"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.scripts]
+localvidplayer = "backend.vid_server:main"
