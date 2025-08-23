@@ -10,8 +10,8 @@ def rename_vid(name, ext):
         ext = "mp4"
         changed = True
 
-    if not bool(re.match(r'^[A-Za-z0-9._\-\[\]]+$', name)):
-        name = re.sub(r'[^A-Za-z0-9._\-\[\]]', '_', name)
+    if not bool(re.match(r'^[A-Za-z0-9._\-\[\]\(\)]+$', name)):
+        name = re.sub(r'[^A-Za-z0-9._\-\[\]\(\)]', '_', name)
         changed = True
 
     return (name, ext, changed)
@@ -42,25 +42,24 @@ def preprocess_vids(path : str, modify: bool, platform : str, hide: bool) -> lis
             if os.path.isfile(path + new_title):
                 name += "_D"
                 new_title = ".".join((name, ext))
-            os.rename(title, path + new_title)
 
         if hide:
             if platform == "Windows" and not bool(ctypes.windll.kernel32.GetFileAttributesW(path +
                                                                                             new_title) & 0x2):
+                os.rename(path + title, path + new_title)
                 subprocess.call(['attrib', '+h', path + new_title])
             elif platform == "MacOS" or "Linux":
-                new_title = "." + new_title
+                new_title = "." + new_title if parts[0] != "" else new_title
+                os.rename(path + title, path + new_title)
 
         if platform == "Windows":
             vids.append((new_title, get_vid_ctime(path, new_title, platform)))
-        
         else:
             vids.append((new_title, get_vid_ctime(path, new_title, platform)))
 
-    print("here")
     return vids
 
 
-conf = BackEndConfig()
-print(preprocess_vids(conf.get('vids_path'), conf.get('preprocess', 'modify'),
-                      conf.get('preprocess', 'platform'), conf.get('preprocess', 'hide'))[:10])
+# conf = BackEndConfig()
+# print(preprocess_vids(conf.get('vids_path'), conf.get('preprocess', 'modify'),
+#                       conf.get('preprocess', 'platform'), conf.get('preprocess', 'hide'))[:10])

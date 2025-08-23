@@ -3,81 +3,64 @@ import os
 from abc import ABC, abstractmethod
 
 
-# change to your own configuration file path
-BACKEND_CONFIG_PATH = "config/backend_conf.yaml"
-FRONTEND_CONFIG_PATH = "config/frontend_conf.yaml"
+class ConfigValue:
+    def __init__(self, data):
+        for key, val in data.items():
+            # key = key.toupper()
+            if isinstance(val, dict):
+                setattr(self, key, ConfigValue(val))
+            elif isinstance(val, list):
+                setattr(self, key, [ConfigValue(v) if isinstance(v, dict) else v for v in val])
+            else:
+                setattr(self, key, val)
 
 
-class BaseConfig(ABC):
+class Config:
     def __init__(self, config_path=""):
         self._config_path=config_path
-        self._config = {}
         self.load()
-        self.test = 0
 
     def load(self):
         if not os.path.exists(self._config_path):
             return 
 
         with open(self._config_path, "r") as f:
-            self._config = yaml.safe_load(f) or {}
+            data = yaml.safe_load(f) or {}
 
-    def save(self):
-        with open(self._config_path, "w") as f:
-            yaml.safe_dump(self._config, f)
+        self.data = ConfigValue(data)
 
-    def get(self, *keys : str):
-        try:
-            curr = self._config
-            for key in keys:
-                curr = curr[key]
-        except:
-            return None
-        return curr;
-
-    def set(self, value, *keys : list) -> bool:
-        print(os.getcwd())
-        if len(keys) == 0:
-            return True
-
-        print(self._config)
-        try:
-            curr = self._config
-            for key in keys:
-                print(curr)
-                curr = curr[key]
-        except:
-            return False
-        return True
-    
-
-class BackEndConfig(BaseConfig):
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self):
-        if self._initialized:
-            return
-        self._initialized = True
-        super().__init__(BACKEND_CONFIG_PATH)
+    # def save(self):
+    #     with open(self._config_path, "w") as f:
+    #         yaml.safe_dump(self._config, f)
 
 
-class FrontEndConfig(BaseConfig):
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-
-    def __init__(self):
-        if self._initialized:
-            return
-        self._initialized = True
-        super().__init__(FRONTEND_CONFIG_PATH)
+# def singleton(cls):
+#     _instances = {}
+#     def wrapper(*args, **kwargs):
+#         if cls not in _instances:
+#             _instances[cls] = cls(*args, **kwargs)
+#             return _instances[cls]
+#         elif _instances[cls]._config_path ==
+#     return wrapper
+#     
+#
+# @singleton
+# class BackEndConfig(BaseConfig):
+#     def __init__(self, path):
+#         super().__init__(path)
+#
+#
+# class FrontEndConfig(BaseConfig):
+#     _instance = None
+#
+#     def __new__(cls):
+#         if cls._instance is None:
+#             cls._instance = super().__new__(cls)
+#             cls._instance._initialized = False
+#         return cls._instance
+#
+#     def __init__(self, path):
+#         if self._initialized:
+#             return
+#         self._initialized = True
+#         super().__init__(path)
