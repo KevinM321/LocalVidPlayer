@@ -58,8 +58,3 @@ def preprocess_vids(path : str, modify: bool, platform : str, hide: bool) -> lis
             vids.append((new_title, get_vid_ctime(path, new_title, platform)))
 
     return vids
-
-
-# conf = BackEndConfig()
-# print(preprocess_vids(conf.get('vids_path'), conf.get('preprocess', 'modify'),
-#                       conf.get('preprocess', 'platform'), conf.get('preprocess', 'hide'))[:10])

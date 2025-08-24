@@ -1,12 +1,15 @@
-from flask import Flask, request, send_from_directory, Response, abort, jsonify, make_response
 import os
 from db_utils import *
+from vid_utils import *
 from config.config_utils import *
+from flask import Flask, request, send_from_directory, Response, abort, jsonify, make_response
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
-be_conf = Config("config/backend_conf.yaml")
-fe_conf = Config("config/frontend_conf.yaml")
+to_remove = set()
+be_conf = load_config("config/backend_conf.yaml")
+db = DB_Helper(be_conf.paths.DB_PATH)
 
 
 def make_cors_response(content):
@@ -36,53 +39,27 @@ def reload():
     global to_remove
     try:
         for title in to_remove:
-            path = config.resource_path + 'vids/'
+            path = be_conf.paths.VIDS_PATH
             if os.path.isfile(path + title):
                 os.remove(path + title)
         to_remove = set()
-        update_db()
+        vids = preprocess_vids(be_conf.paths.VIDS_PATH, be_conf.preprocess.MODIFY,
+                               be_conf.preprocess.PLATFORM, be_conf.preprocess.HIDE)
+        db.update_db(vids)
     except Exception as e:
+        print(e)
         return make_cors_response(jsonify(status=0, response='Database Update Failed'))
     return make_cors_response(jsonify(status=1, response='Database updated successfully'))
 
 
 @app.route("/player/metadatas")
 def metadatas():
-    return make_cors_response(jsonify(query_metadatas()))
+    return make_cors_response(jsonify(db.query_metadatas()))
 
 
-def update_metadatas(setting, cmd):
+def update_table(func, args: list):
     try:
-        idx = int(cmd.get('id'))
-        val = int(cmd.get('value'))
-        conn = sqlite3.connect(DB_PATH)
-        conn.cursor().execute(f'''
-            UPDATE metadatas
-            SET {setting} = ?
-            WHERE id = ?
-        ''', (val, idx))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(e)
-        return make_cors_response(jsonify({"status": 0, "response": "Command Failed"}))
-    return make_cors_response(jsonify({"status": 1, "response": "Command Successful"}))
-
-
-def update_highlights(vid, timestamp):
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.cursor().execute(
-            "SELECT 1 FROM highlights WHERE vid_id = ? AND timestamp = ? LIMIT 1",
-            (vid, timestamp)
-        )
-        exists = conn.cursor().fetchone()
-        if not exists:
-            conn.cursor().execute(
-                "INSERT INTO highlights (vid_id, timestamp) VALUES (?, ?)",
-                (vid, timestamp)
-            )
-        conn.commit()
+        func(*args)
     except Exception as e:
         print(e)
         return make_cors_response(jsonify({"status": 0, "response": "Command Failed"}))
@@ -157,7 +134,8 @@ def add_highlight():
         cmd = request.json
         vid = cmd['id']
         timestamp = int(float(cmd['value']))
-    return update_highlights(vid, timestamp)
+    return update_table(db.update_highlights, [vid, timestamp])
+    # return update_highlights(vid, timestamp)
 
 
 @app.route("/player/remove_highlight")
@@ -165,16 +143,16 @@ def remove_highlight():
     vid = request.args.get('vid_id')
     timestamp = int(float(request.args.get('timestamp')))
     try:
-        res = run_sql_cmd(f'''
-            SELECT * FROM highlights
-            WHERE vid_id = {vid} AND timestamp = {timestamp}
-        ''')
+        res = db.run_sql_cmd(f'''
+                                SELECT * FROM highlights
+                                WHERE vid_id = {vid} AND timestamp = {timestamp}
+                            ''')
         if not res:
             raise
-        run_sql_cmd(f'''
-            DELETE FROM highlights
-            WHERE vid_id = {vid} AND timestamp = {timestamp}
-        ''')
+        db.run_sql_cmd(f'''
+                            DELETE FROM highlights
+                            WHERE vid_id = {vid} AND timestamp = {timestamp}
+                        ''')
     except Exception as e:
         print(e)
         return make_cors_response(jsonify({"status": 0, "response": "Command Failed"}))
@@ -184,20 +162,19 @@ def remove_highlight():
 @app.route("/player/get_highlight")
 def get_highlight():
     vid = request.args.get('vid_id')
-    return make_cors_response(jsonify(query_highlights(vid)))
+    return make_cors_response(jsonify(db.query_highlights(vid)))
 
 
-@app.route("/code/<filename>")
+@app.route("/frontend/<filename>")
 def page(filename):
-    file_path = os.path.join(CODE_DIR, filename)
-    if not os.path.isfile(file_path):
-        abort(404)
-    return send_from_directory(CODE_DIR, filename)
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../frontend/")
+    print(file_path)
+    return send_from_directory(file_path, filename)
 
 
 @app.route("/vids/<filename>")
 def video(filename):
-    file_path = os.path.join(VIDEO_DIR, filename)
+    file_path = os.path.join(be_conf.paths.VIDS_PATH, filename)
     if not os.path.isfile(file_path):
         abort(404)
 
@@ -236,7 +213,4 @@ def video(filename):
 
 
 if __name__ == "__main__":
-    to_remove = set()
-
-    # app.run(host="0.0.0.0", port=PORT, threaded=True)
-    # app.run(host="127.0.0.1", port=PORT, threaded=True)
+    app.run(host=be_conf.server.HOST, port=be_conf.server.PORT, threaded=True)

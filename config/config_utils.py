@@ -1,37 +1,41 @@
 import yaml
 import os
-from abc import ABC, abstractmethod
 
 
-class ConfigValue:
+class Config:
     def __init__(self, data):
         for key, val in data.items():
-            # key = key.toupper()
             if isinstance(val, dict):
-                setattr(self, key, ConfigValue(val))
+                setattr(self, key, Config(val))
             elif isinstance(val, list):
-                setattr(self, key, [ConfigValue(v) if isinstance(v, dict) else v for v in val])
+                setattr(self, key, [Config(v) if isinstance(v, dict) else v for v in val])
             else:
                 setattr(self, key, val)
 
 
-class Config:
-    def __init__(self, config_path=""):
-        self._config_path=config_path
-        self.load()
+def load_config(path: str):
+    with open(path, "r") as f:
+        data = yaml.safe_load(f) or {}
+    return Config(data)
 
-    def load(self):
-        if not os.path.exists(self._config_path):
-            return 
 
-        with open(self._config_path, "r") as f:
-            data = yaml.safe_load(f) or {}
-
-        self.data = ConfigValue(data)
-
-    # def save(self):
-    #     with open(self._config_path, "w") as f:
-    #         yaml.safe_dump(self._config, f)
+# class Config:
+#     def __init__(self, config_path=""):
+#         self._config_path=config_path
+#         self.load()
+#
+#     def load(self):
+#         if not os.path.exists(self._config_path):
+#             return 
+#
+#         with open(self._config_path, "r") as f:
+#             data = yaml.safe_load(f) or {}
+#
+#         self.data = ConfigValue(data)
+#
+#     def save(self):
+#         with open(self._config_path, "w") as f:
+#             yaml.safe_dump(self._config, f)
 
 
 # def singleton(cls):
