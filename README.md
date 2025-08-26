@@ -9,6 +9,8 @@
 > 3. Run "pip install -e ." to install dependencies
 > 4. Create/edit configuration file for backend (example in config/)
 > 5. Run "python backend/vid_server.py <path_to_your_config_file>"
+> 6. To access video player, in browser go to URL: <br>
+>  "<your_host_ip>:<your_port>/frontend/vid_player.html"
 
 
 ## ⚙️ BackEnd Configurations
