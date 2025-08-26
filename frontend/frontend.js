@@ -303,7 +303,7 @@ async function checkNoParam(params) {
         termLog(action, {'status': 1, 'response': highlights});
         console.log(highlights);
     }
-    else if (action == 'remove' || action == 'rm') {
+    else if (action == 'remove') {
         var res = await modifyMetadata('remove', id, metadatas[current].title);
         termLog(action, res);
     }
