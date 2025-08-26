@@ -24,7 +24,7 @@ def get_vid_ctime(path : str, title : str, platform : str):
         return os.path.getctime(path + title)
     
 
-def preprocess_vids(path : str, modify: bool, platform : str, hide: bool) -> list:
+def preprocess_vids(path : str,  platform : str, modify: bool, hide: bool) -> list:
     titles = os.listdir(path)
     if not modify:
         return titles

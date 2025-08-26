@@ -1,0 +1,13 @@
+server:
+  HOST: 0.0.0.0
+  PORT: 8000
+
+paths:
+  VIDS_PATH: "/xxx/xxx/xxx/"
+  DB_PATH: "/xxx/xxx/xxx.db"
+
+preprocess:
+  PLATFORM: "Linux" 
+  MODIFY: true  
+  DELETE: false
+  HIDE: true

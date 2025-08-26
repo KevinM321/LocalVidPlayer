@@ -25,6 +25,9 @@ Thumbs.db
 dist/
 build/
 
+# Tests
+tests/
+
 # Logs and temp
 *.log
 *.tmp

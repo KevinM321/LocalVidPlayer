@@ -1,14 +1,27 @@
 import os
+import sys
 from db_utils import *
 from vid_utils import *
 from config.config_utils import *
 from flask import Flask, request, send_from_directory, Response, abort, jsonify, make_response
 
+
+def check_config():
+    if len(sys.argv) < 2:
+        print("Usage: python backend/vid_server.py <config_path>")
+        sys.exit(1)
+    if not os.path.isfile(sys.argv[1]):
+        print("Invalid config file path supplied")
+        sys.exit(1)
+    return sys.argv[1]
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONF_PATH = check_config()
 
 app = Flask(__name__)
 to_remove = set()
-be_conf = load_config("config/backend_conf.yaml")
+be_conf = load_config(CONF_PATH)
 db = DB_Helper(be_conf.paths.DB_PATH)
 
 
@@ -19,6 +32,16 @@ def make_cors_response(content):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
 
+def remove_vids():
+    global to_remove
+    if not be_conf.preprocess.DELETE:
+        return
+    for title in to_remove:
+        path = be_conf.paths.VIDS_PATH
+        if os.path.isfile(path + title):
+            os.remove(path + title)
+    to_remove = set()
+
 
 @app.route("/player/remove", methods=['POST', 'OPTIONS'])
 def remove():
@@ -28,6 +51,8 @@ def remove():
 
     global to_remove
     try:
+        if not be_conf.preprocess.DELETE:
+            return make_cors_response(jsonify({"status": 0, "response": "Command Not Permitted"}))
         to_remove.add(request.json.get('value'))
     except:
         return make_cors_response(jsonify({"status": 0, "response": "Command Failed"}))
@@ -36,13 +61,8 @@ def remove():
 
 @app.route("/player/reload")
 def reload():
-    global to_remove
     try:
-        for title in to_remove:
-            path = be_conf.paths.VIDS_PATH
-            if os.path.isfile(path + title):
-                os.remove(path + title)
-        to_remove = set()
+        remove_vids()
         vids = preprocess_vids(be_conf.paths.VIDS_PATH, be_conf.preprocess.MODIFY,
                                be_conf.preprocess.PLATFORM, be_conf.preprocess.HIDE)
         db.update_db(vids)
@@ -167,7 +187,7 @@ def get_highlight():
 
 @app.route("/frontend/<filename>")
 def page(filename):
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../frontend/")
+    file_path = os.path.join(BASE_DIR, "../frontend/")
     print(file_path)
     return send_from_directory(file_path, filename)
 
